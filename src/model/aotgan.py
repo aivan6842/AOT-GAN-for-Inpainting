@@ -31,10 +31,10 @@ class InpaintGenerator(BaseNetwork):
     def forward(self, x, mask):
         x = torch.cat([x, mask], dim=1)
         x = self.encoder(x)
-        x = self.middle(x)
-        x = self.decoder(x)
+        x_mid = self.middle(x)
+        x = self.decoder(x_mid)
         x = torch.tanh(x)
-        return x
+        return x, x_mid
 
 
 class UpConv(nn.Module):
