@@ -28,13 +28,24 @@ class InpaintGenerator(BaseNetwork):
 
         self.init_weights()
 
+        self.activations = []
+        for i in range(args.block_num):
+            self.middle.register_forward_hook(self.get_activation(f"middle.{i}"))
+
+    def get_activation(self, name):
+        def hook(model, input, output):
+            self.activations.append(output.detach())
+        return hook
+
     def forward(self, x, mask):
         x = torch.cat([x, mask], dim=1)
         x = self.encoder(x)
         x_mid = self.middle(x)
         x = self.decoder(x_mid)
         x = torch.tanh(x)
-        return x, x_mid
+        acts = torch.stack(self.activations)
+        self.activations = []
+        return x, acts
 
 
 class UpConv(nn.Module):
