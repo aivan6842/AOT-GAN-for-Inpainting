@@ -63,7 +63,7 @@ def fid(reals, fakes, num_worker=8, real_fid_path=None):
     dims = 2048
     batch_size = 4
     block_idx = InceptionV3.BLOCK_INDEX_BY_DIM[dims]
-    model = InceptionV3([block_idx]).cuda()
+    model = InceptionV3([block_idx])
 
     if real_fid_path is None:
         real_fid_path = "places2_fid.pt"
@@ -73,13 +73,13 @@ def fid(reals, fakes, num_worker=8, real_fid_path=None):
         real_m, real_s = data["mu"], data["sigma"]
     else:
         reals = (np.array(reals).astype(np.float32) / 255.0).transpose((0, 3, 1, 2))
-        real_m, real_s = calculate_activation_statistics(reals, model, batch_size, dims)
+        real_m, real_s = calculate_activation_statistics(reals, model, batch_size, dims, cuda=False)
         with open(real_fid_path, "wb") as f:
             pickle.dump({"mu": real_m, "sigma": real_s}, f)
 
     # calculate fid statistics for fake images
     fakes = (np.array(fakes).astype(np.float32) / 255.0).transpose((0, 3, 1, 2))
-    fake_m, fake_s = calculate_activation_statistics(fakes, model, batch_size, dims)
+    fake_m, fake_s = calculate_activation_statistics(fakes, model, batch_size, dims, cuda=False)
 
     fid_value = calculate_frechet_distance(real_m, real_s, fake_m, fake_s)
 
@@ -148,7 +148,7 @@ def get_activations(images, model, batch_size=64, dims=2048, cuda=True, verbose=
 
         batch = torch.from_numpy(images[start:end]).type(torch.FloatTensor)
         batch = Variable(batch)
-        if torch.cuda.is_available:
+        if torch.cuda.is_available and cuda:
             batch = batch.cuda()
         with torch.no_grad():
             pred = model(batch)[0]
